@@ -1,3 +1,6 @@
+import 'package:b04f/helpers/shared_prefs.dart';
+import 'package:b04f/helpers/utils.dart';
+import 'package:b04f/screens/screen_history.dart';
 import 'package:b04f/screens/screen_map.dart';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
@@ -14,15 +17,26 @@ class ScreenHome extends StatefulWidget {
 
 class _ScreenHomeState extends State<ScreenHome> {
   TextEditingController addressController = TextEditingController();
-  LatLng? selectedLocation;
+  List<LatLng> selectedLocations = [];
+  List<Location> data = [];
+  bool loadingCurrentPos = false;
 
   @override
   Widget build(BuildContext context) {
+
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
           "Future Builder",
         ),
+        actions: [
+          IconButton(
+              onPressed: () {
+                openScreen(context: context, screen: ScreenHistory());
+              },
+              icon: Icon(Icons.history))
+        ],
       ),
       body: Container(
         margin: EdgeInsets.all(10),
@@ -51,37 +65,45 @@ class _ScreenHomeState extends State<ScreenHome> {
                   return Text("Loading...");
                 }
 
-                var data = snapshot.data ?? [];
+                data = snapshot.data ?? [];
 
                 return data.isNotEmpty
                     ? Expanded(
-                        child: ListView.builder(
-                          itemBuilder: (context, index) {
-                            var item = data[index];
-                            return RadioListTile(
-                              title: Text("Lat: ${item.latitude}, Lng: ${item.longitude}"), value: LatLng(item.latitude, item.longitude),
-                              groupValue: selectedLocation,
-                              onChanged: (LatLng? value) {
-                                setState(() {
-                                  selectedLocation = value;
-                                });
-                              },
-                              // onTap: () {
-                              //   Navigator.push(
-                              //     context,
-                              //     MaterialPageRoute(
-                              //       builder: (_) => ScreenMap(
-                              //         lat: item.latitude,
-                              //         lng: item.longitude,
-                              //         locationName: addressController.text,
-                              //       ),
-                              //     ),
-                              //   );
-                              // },
-                            );
-                          },
-                          itemCount: data.length,
-                        ),
+                        child: StatefulBuilder(builder: (context, refreshBuilder) {
+                          return ListView.builder(
+                            itemBuilder: (context, index) {
+                              var item = data[index];
+                              var point = LatLng(item.latitude, item.longitude);
+
+                              return CheckboxListTile(
+                                title: Text("Lat: ${item.latitude}, Lng: ${item.longitude}"), value: selectedLocations.contains(point),
+                                onChanged: (selected) {
+                                  if (selected ?? false) {
+                                    if (!selectedLocations.contains(point)) {
+                                      selectedLocations.add(point);
+                                    }
+                                  } else {
+                                    selectedLocations.remove(point);
+                                  }
+                                  refreshBuilder(() {});
+                                },
+                                // onTap: () {
+                                //   Navigator.push(
+                                //     context,
+                                //     MaterialPageRoute(
+                                //       builder: (_) => ScreenMap(
+                                //         lat: item.latitude,
+                                //         lng: item.longitude,
+                                //         locationName: addressController.text,
+                                //       ),
+                                //     ),
+                                //   );
+                                // },
+                              );
+                            },
+                            itemCount: data.length,
+                          );
+                        }),
                       )
                     : Text("No locations");
               },
@@ -89,52 +111,77 @@ class _ScreenHomeState extends State<ScreenHome> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          if (selectedLocation == null) {
-            showSnackbar("No location selected", context);
-            return;
-          }
+      floatingActionButton: StatefulBuilder(builder: (context, refreshFloating) {
+        return FloatingActionButton.extended(
+          onPressed: loadingCurrentPos
+              ? null
+              : () async {
+                  if (selectedLocations.isEmpty) {
+                    showSnackbar("No location selected", context);
+                    return;
+                  }
 
-          var permissionStatus = await Permission.location.request();
-          if (permissionStatus.isGranted) {
-            try {
-              var currentLocation = await Geolocator.getCurrentPosition();
+                  refreshFloating(() {
+                    loadingCurrentPos = true;
+                  });
 
-              var distance = Geolocator.distanceBetween(
-                currentLocation.latitude,
-                currentLocation.longitude,
-                selectedLocation!.latitude,
-                selectedLocation!.longitude,
-              );
-              Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ScreenMap(
-                        lat: currentLocation.latitude,
-                        lng: currentLocation.longitude,
-                        locationName: addressController.text,
-                      ),
-                    ),
-                  );
+                  var permissionStatus = await Permission.location.request();
+                  if (permissionStatus.isGranted) {
+                    try {
+                      var currentLocation = await Geolocator.getCurrentPosition();
 
+                      var distance = Geolocator.distanceBetween(
+                        currentLocation.latitude,
+                        currentLocation.longitude,
+                        selectedLocations.first.latitude,
+                        selectedLocations.first.longitude,
+                      );
 
-              showSnackbar("Distance: ${(distance / 1000).toStringAsFixed(2)} km", context);
-            } catch (e) {
-              showSnackbar(e.toString(), context);
-            }
-          } else {
-            showSnackbar("Allow location first", context);
-          }
+                      MyPrefs().storeValue(addressController.text);
+                      
+                      openScreen(
+                          context: context,
+                          screen: ScreenMap(
+                            locationName: addressController.text,
+                            allPoints: data.map((e) => LatLng(e.latitude, e.longitude)).toList(),
+                            currentLocation: LatLng(currentLocation.latitude, currentLocation.longitude),
+                            selectedLocations: selectedLocations,
+                            distance: distance,
+                          ));
 
-          // Geolocator.distanceBetween(startLatitude, startLongitude, endLatitude, endLongitude);
-        },
-        label: Text("Calculate distance"),
-      ),
+                      showSnackbar("Distance: ${(distance / 1000).toStringAsFixed(2)} km", context);
+                    } catch (e) {
+                      showSnackbar(e.toString(), context);
+                    }
+                  } else {
+                    showSnackbar("Allow location first", context);
+                  }
+
+                  refreshFloating(() {
+                    loadingCurrentPos = false;
+                  });
+
+                  // Geolocator.distanceBetween(startLatitude, startLongitude, endLatitude, endLongitude);
+                },
+          label: loadingCurrentPos
+              ? SizedBox(
+                  height: 30,
+                  width: 30,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                  ))
+              : Text("Calculate distance"),
+        );
+      }),
     );
   }
 
   void showSnackbar(String message, BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
+
+  // void printStoredValue() async {
+  //   var storedValue = await MyPrefs().getHistory();
+  //   print("StoredValue: $storedValue");
+  // }
 }

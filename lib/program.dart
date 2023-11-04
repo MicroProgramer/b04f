@@ -27,8 +27,12 @@ void main() async {
   //     print("This is an unknown file");
   // }
 
-  var obj = TestClass("Ali", "98w38wybewuybe80woedu");
-  obj.logic = '2';
+  // var obj = TestClass("Ali", "98w38wybewuybe80woedu");
+  // obj.logic = '2';
+
+
+  var list = [1, 2, 3, 4];
+  var list1 = [0, ...list];
 }
 
 class TestClass {
