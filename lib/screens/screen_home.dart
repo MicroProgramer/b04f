@@ -23,8 +23,6 @@ class _ScreenHomeState extends State<ScreenHome> {
 
   @override
   Widget build(BuildContext context) {
-
-
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -137,8 +135,17 @@ class _ScreenHomeState extends State<ScreenHome> {
                         selectedLocations.first.longitude,
                       );
 
-                      MyPrefs().storeValue(addressController.text);
-                      
+                      try {
+                        MyPrefs().storeValue(
+                            addressController.text,
+                            data.map((e) => LatLng(e.latitude, e.longitude)).toList(),
+                            selectedLocations,
+                            LatLng(currentLocation.latitude, currentLocation.longitude)
+                        );
+                      } catch (e){
+                        print("Exception: $e");
+                      }
+
                       openScreen(
                           context: context,
                           screen: ScreenMap(
@@ -180,8 +187,8 @@ class _ScreenHomeState extends State<ScreenHome> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  // void printStoredValue() async {
-  //   var storedValue = await MyPrefs().getHistory();
-  //   print("StoredValue: $storedValue");
-  // }
+// void printStoredValue() async {
+//   var storedValue = await MyPrefs().getHistory();
+//   print("StoredValue: $storedValue");
+// }
 }

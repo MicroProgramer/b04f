@@ -1,3 +1,5 @@
+import 'package:b04f/models/history.dart';
+
 void main() async {
 
   // String type = 'audio';    ///text, video, audio
@@ -29,26 +31,31 @@ void main() async {
 
   // var obj = TestClass("Ali", "98w38wybewuybe80woedu");
   // obj.logic = '2';
+  // var list = [1, 2, 3, 4];
+  // var list1 = [0, ...list];
 
-
-  var list = [1, 2, 3, 4];
-  var list1 = [0, ...list];
+  // History history = History("1", "Lahore", DateTime.now().millisecondsSinceEpoch);
+  // var stringObj = history.toString();
+  // var convertedObj = History.fromString(stringObj);
+  //
+  // print(history.timestamp);
+  // print(convertedObj.timestamp);
 }
 
-class TestClass {
-  String name;
-  String _secret;// any secret value
-
-  TestClass(this.name, this._secret);
-
-  String get logic => _secret.toUpperCase();
-
-  void set logic (String x) {
-    _secret = x;
-  }
-
-}
-
-enum FileType {
-  text, video, audio
-}
+// class TestClass {
+//   String name;
+//   String _secret;// any secret value
+//
+//   TestClass(this.name, this._secret);
+//
+//   String get logic => _secret.toUpperCase();
+//
+//   void set logic (String x) {
+//     _secret = x;
+//   }
+//
+// }
+//
+// enum FileType {
+//   text, video, audio
+// }
