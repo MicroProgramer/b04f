@@ -41,6 +41,7 @@ dependencies:
   google_maps_flutter: ^2.5.0
   shared_preferences: ^2.2.2
   intl: ^0.18.1
+  get: ^4.6.6
 
 dev_dependencies:
   flutter_test:
